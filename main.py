@@ -44,11 +44,29 @@ def get_and_save_frames(single_video,subject,ix):
         success,image = vidcap.read()
         count += 1
         
+def cosa(root,j_list):
+    j_stats = {}
+    all_files = []
+    for key,values in j_list.items():
+        user_folder = os.path.join(root,'frames',key)
+        question_folder = len(os.listdir(user_folder))+1
+        for q in range(1,question_folder):
+            single_question = os.path.join(user_folder,str(q))
+            all_frames = os.listdir(single_question)
+            no = len(all_frames)
+            j_stats[key+'.'+str(q)] = no
+            z = [os.path.join(single_question,str(f)+'.jpg') for f in range(0,no)]
+            all_files.append(z)
+    return [j_stats,all_files]
 
 if __name__ == "__main__":
     root = '/home/hitch'
     j_list = create_list(os.path.join(root,'videos'))
-    analyze_user(root,j_list)
+    #analyze_user(root,j_list)
+    [j_stats,all_files] = cosa(root,j_list)
+    unique_full_list = sum(all_files,[])
+
+
 
 
     
