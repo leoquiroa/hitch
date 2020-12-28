@@ -1,6 +1,7 @@
 import os
 import cv2
 from pathlib import Path
+import numpy as np
 
 def video_list(root):
     file_list = os.listdir(os.path.join(root,'videos'))
@@ -65,26 +66,44 @@ def facial_detection(j_frames):
     face_cascade = cv2.CascadeClassifier(url)
     for k_subject,v_subject in j_frames.items():
         subject = os.path.join(root,'faces',k_subject)
+        print(subject)
         if not os.path.isdir(subject): os.mkdir(subject)
         for k_question,v_question in v_subject.items():
             question = os.path.join(subject,k_question)
+            print(question)
             if not os.path.isdir(question): os.mkdir(question)
             for url in v_question:
+                # rgb image
                 img = cv2.imread(url)
+                # gray image
                 gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+                # haar cascade face detector
                 faces = face_cascade.detectMultiScale(gray, 
                     scaleFactor=1.05, 
                     minNeighbors=4, 
                     minSize=(30,30))
+                # no face condition
                 if len(faces) == 0 : continue
-                for (x, y, w, h) in faces:
+                # get the area
+                areas = [w*h for x,y,w,h in faces]
+                # get the maximum of the areas
+                i_biggest = np.argmax(areas)
+                # filter only the biggest face
+                face = faces[int(i_biggest)].reshape(1,4)
+                for (x, y, w, h) in face:
+                    # cropped and resized image
                     crop_img = img[y:y+h, x:x+w].copy()
+                    resized = cv2.resize(crop_img, (150,150))
+                    # draw a rectangke over the image
                     cv2.rectangle(img, (x, y), (x+w, y+h), (255, 0, 0), 2)
+                # get the original name
                 h,tail = os.path.split(url)
+                # save the square image
                 face_path = os.path.join(question,'square_'+tail)
                 cv2.imwrite(face_path, img)
+                # save the cropped face
                 crop_path = os.path.join(question,'crop_'+tail)
-                cv2.imwrite(crop_path, crop_img)
+                cv2.imwrite(crop_path, resized)
 
 if __name__ == "__main__":
     root = '/home/hitch'
