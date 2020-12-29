@@ -2,6 +2,7 @@ import os
 import cv2
 from pathlib import Path
 import numpy as np
+from keras.models import load_model
 
 def video_list(root):
     file_list = os.listdir(os.path.join(root,'videos'))
@@ -105,12 +106,33 @@ def facial_detection(j_frames):
                 crop_path = os.path.join(question,'crop_'+tail)
                 cv2.imwrite(crop_path, resized)
 
+def emotion_recognition(root,j_frames):
+    model = load_model(os.path.join(root,"model_v6_23.hdf5"))
+    emotion_dict= {'Angry': 0, 'Sad': 5, 'Neutral': 4, 'Disgust': 1, 'Surprise': 6, 'Fear': 2, 'Happy': 3}
+    label_map = dict((v,k) for k,v in emotion_dict.items()) 
+    for k_subject,v_subject in j_frames.items():
+        for k_question,v_question in v_subject.items():
+            print(k_subject,k_question)
+            for url in v_question:
+                h,tail = os.path.split(url)
+                crop_url = os.path.join(root,"faces",k_subject,k_question,"crop_"+tail)
+                face_image = cv2.imread(crop_url,0)
+                face_image = np.reshape(face_image, [1, face_image.shape[0], face_image.shape[1], 1])
+                try:
+                    predicted_class = np.argmax(model.predict(face_image))
+                    predicted_label = label_map[predicted_class]
+                    print(tail,predicted_label)
+                except KeyError as e:
+                    print(tail,'no label')
+                
+
 if __name__ == "__main__":
     root = '/home/hitch'
     j_videos = video_list(root)
     #analyze_user(root,j_list)
     j_frames = frame_list(root,j_videos)
-    facial_detection(j_frames)
+    #facial_detection(j_frames)
+    emotion_recognition(root,j_frames)
 
 
 
