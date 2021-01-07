@@ -112,23 +112,25 @@ def emotion_recognition(root,j_frames):
     emotion_dict= {'Angry': 0, 'Sad': 5, 'Neutral': 4, 'Disgust': 1, 'Surprise': 6, 'Fear': 2, 'Happy': 3}
     label_map = dict((v,k) for k,v in emotion_dict.items()) 
     for k_subject,v_subject in j_frames.items():
+        if k_subject == 'P1iGNqnOaCUqtnF' : continue
         for k_question,v_question in v_subject.items():
             print(k_subject,k_question)
             for crop_url in v_question:
                 h,tail = os.path.split(crop_url)
                 if tail.startswith("square_"): continue
                 face_image = cv2.imread(crop_url,0)
+                face_image = cv2.resize(face_image, (48,48))
                 # required shape [1,x,y,1]
                 face_image = np.reshape(face_image, [1, face_image.shape[0], face_image.shape[1], 1])
                 mylist = []
                 try:
                     predicted_class = np.argmax(model.predict(face_image))
                     predicted_label = label_map[predicted_class]
-                    print(tail,predicted_label)
+                    #print(tail,predicted_label)
                     mylist = [k_subject,k_question,tail,predicted_label]
                 except KeyError as e:
                     mylist = [k_subject,k_question,tail,'no label']
-                    print(tail,'no label')
+                    #print(tail,'no label')
                 with open(root+'/list.csv', 'a+', newline='\n') as f:
                     wr = csv.writer(f, quoting=csv.QUOTE_ALL)
                     wr.writerow(mylist)
