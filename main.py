@@ -40,11 +40,22 @@ def video_convertion(root):
         if not path.exists(output_video):
             input_video = os.path.join(base_raw,f)
             ffmpeg_convert(input_video,output_video)
+
+def video_length(root):
+    base_mp4 = os.path.join(root,'videos','mp4')
+    file_list = os.listdir(base_mp4)
+    j_list = {}
+    for f in file_list:
+        print(f)
+        first = f.split('_')
+        user = first[0]
+        question = first[1].split('.')[0]
+        output_video = os.path.join(base_mp4,f)
         # get values per video
         cap = cv2.VideoCapture(output_video)
         fps = cap.get(cv2.CAP_PROP_FPS)
         frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-        duration = frame_count/fps
+        duration = round(frame_count/fps,2)
         cap.release()
         #creaate dict
         if user in j_list:
@@ -203,7 +214,8 @@ if __name__ == "__main__":
     #j_faces = dir_list(root,j_videos,'faces')
     #emotion_recognition(root,j_faces)
 
-    j_videos = video_convertion(root)
+    #j_videos = video_convertion(root)
+    j_videos = video_length(root)
     print(j_videos)
     #individual_emotion(root,'list.csv')
 
