@@ -49,17 +49,17 @@ def get_and_save_frames(single_video,subject,q):
         success,image = vidcap.read()
         count += 1
         
-def frame_list(root,j_list):
+def dir_list(root,j_list,folder):
     j_frames = {}
     for k_subject,v_subject in j_list.items():
         for k_question,v_question in v_subject.items():
-            single_question = os.path.join(root,'frames',k_subject,k_question)
-            all_frames = sorted(Path(single_question).iterdir(), key=os.path.getmtime)
-            all_frames = [str(x) for x in all_frames]
+            single_question = os.path.join(root,folder,k_subject,k_question)
+            all_images = sorted(Path(single_question).iterdir(), key=os.path.getmtime)
+            all_images = [str(x) for x in all_images]
             if k_subject in j_frames:
-                j_frames[k_subject].update({k_question:all_frames})
+                j_frames[k_subject].update({k_question:all_images})
             else:
-                j_frames[k_subject] = {k_question:all_frames}
+                j_frames[k_subject] = {k_question:all_images}
     return j_frames
 
 def facial_detection(j_frames):
@@ -130,9 +130,10 @@ if __name__ == "__main__":
     root = '/home/hitch'
     j_videos = video_list(root)
     #analyze_user(root,j_list)
-    j_frames = frame_list(root,j_videos)
+    j_frames = dir_list(root,j_videos,'frames')
+    j_faces = dir_list(root,j_videos,'faces')
     #facial_detection(j_frames)
-    emotion_recognition(root,j_frames)
+    #emotion_recognition(root,j_frames)
 
 
 
