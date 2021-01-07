@@ -4,6 +4,10 @@ from pathlib import Path
 import numpy as np
 from keras.models import load_model
 import csv
+from csv import reader
+import subprocess
+from moviepy.editor import VideoFileClip
+from os import path
 
 def video_list(root):
     file_list = os.listdir(os.path.join(root,'videos'))
@@ -16,6 +20,37 @@ def video_list(root):
             j_list[user].update({question:f})
         else:
             j_list[user] = {question:f}
+    return j_list
+
+def ffmpeg_convert(input_video,output_video):
+    cmd = ['ffmpeg','-i',input_video,output_video]
+    result = subprocess.run(cmd)
+
+def video_convertion(root):
+    base_raw = os.path.join(root,'videos','raw')
+    file_list = os.listdir(base_raw)
+    j_list = {}
+    for f in file_list:
+        print(f)
+        first = f.split('_')
+        user = first[0]
+        question = first[2].split('.')[0]
+        # conversion
+        output_video = os.path.join(root,'videos','mp4',user+'_'+question+'.mp4')
+        if not path.exists(output_video):
+            input_video = os.path.join(base_raw,f)
+            ffmpeg_convert(input_video,output_video)
+        # get values per video
+        cap = cv2.VideoCapture(output_video)
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        duration = frame_count/fps
+        cap.release()
+        #creaate dict
+        if user in j_list:
+            j_list[user].update({question:duration})
+        else:
+            j_list[user] = {question:duration}
     return j_list
 
 def analyze_user(root,j_list):
@@ -135,16 +170,43 @@ def emotion_recognition(root,j_frames):
                     wr = csv.writer(f, quoting=csv.QUOTE_ALL)
                     wr.writerow(mylist)
 
-                
+def individual_emotion(root,csv_file):
+    full_path = os.path.join(root,csv_file)
+    with open(full_path, 'r') as read_obj:
+        csv_reader = reader(read_obj)
+        user = None
+        question = None
+        emotions = []
+        ready = False
+        for row in csv_reader:
+            if user == row[0] and question == row[1]: 
+                emotions.append(row[3])
+                ready = False
+            else:
+                user = row[0]
+                question = row[1]
+                emotions.append(row[3])
+                ready = True
+            if ready == True and len(emotions)>1:
+                print(len(emotions))
+
 
 if __name__ == "__main__":
     root = '/home/hitch'
-    j_videos = video_list(root)
+    #j_videos = video_list(root)
     #analyze_user(root,j_list) #extract frames
     #j_frames = dir_list(root,j_videos,'frames')
     #facial_detection(j_frames)
-    j_faces = dir_list(root,j_videos,'faces')
-    emotion_recognition(root,j_faces)
+    
+    # for csv
+    #j_videos = video_list(root)
+    #j_faces = dir_list(root,j_videos,'faces')
+    #emotion_recognition(root,j_faces)
+
+    j_videos = video_convertion(root)
+    print(j_videos)
+    #individual_emotion(root,'list.csv')
+
 
 
 
