@@ -3,6 +3,7 @@ import cv2
 from pathlib import Path
 import numpy as np
 from keras.models import load_model
+import csv
 
 def video_list(root):
     file_list = os.listdir(os.path.join(root,'videos'))
@@ -50,17 +51,17 @@ def get_and_save_frames(single_video,subject,q):
         count += 1
         
 def dir_list(root,j_list,folder):
-    j_frames = {}
+    j_images = {}
     for k_subject,v_subject in j_list.items():
         for k_question,v_question in v_subject.items():
             single_question = os.path.join(root,folder,k_subject,k_question)
             all_images = sorted(Path(single_question).iterdir(), key=os.path.getmtime)
             all_images = [str(x) for x in all_images]
-            if k_subject in j_frames:
-                j_frames[k_subject].update({k_question:all_images})
+            if k_subject in j_images:
+                j_images[k_subject].update({k_question:all_images})
             else:
-                j_frames[k_subject] = {k_question:all_images}
-    return j_frames
+                j_images[k_subject] = {k_question:all_images}
+    return j_images
 
 def facial_detection(j_frames):
     url = os.path.join(root,'haarcascade_frontalface_default.xml')
@@ -113,27 +114,35 @@ def emotion_recognition(root,j_frames):
     for k_subject,v_subject in j_frames.items():
         for k_question,v_question in v_subject.items():
             print(k_subject,k_question)
-            for url in v_question:
-                h,tail = os.path.split(url)
-                crop_url = os.path.join(root,"faces",k_subject,k_question,"crop_"+tail)
+            for crop_url in v_question:
+                h,tail = os.path.split(crop_url)
+                if tail.startswith("square_"): continue
                 face_image = cv2.imread(crop_url,0)
+                # required shape [1,x,y,1]
                 face_image = np.reshape(face_image, [1, face_image.shape[0], face_image.shape[1], 1])
+                mylist = []
                 try:
                     predicted_class = np.argmax(model.predict(face_image))
                     predicted_label = label_map[predicted_class]
                     print(tail,predicted_label)
+                    mylist = [k_subject,k_question,tail,predicted_label]
                 except KeyError as e:
+                    mylist = [k_subject,k_question,tail,'no label']
                     print(tail,'no label')
+                with open(root+'/list.csv', 'a+', newline='\n') as f:
+                    wr = csv.writer(f, quoting=csv.QUOTE_ALL)
+                    wr.writerow(mylist)
+
                 
 
 if __name__ == "__main__":
     root = '/home/hitch'
     j_videos = video_list(root)
-    #analyze_user(root,j_list)
-    j_frames = dir_list(root,j_videos,'frames')
-    j_faces = dir_list(root,j_videos,'faces')
+    #analyze_user(root,j_list) #extract frames
+    #j_frames = dir_list(root,j_videos,'frames')
     #facial_detection(j_frames)
-    #emotion_recognition(root,j_frames)
+    j_faces = dir_list(root,j_videos,'faces')
+    emotion_recognition(root,j_faces)
 
 
 
