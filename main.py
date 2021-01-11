@@ -10,6 +10,36 @@ from moviepy.editor import VideoFileClip
 from os import path
 
 ####################################################
+# utils: list
+####################################################
+
+def video_list(root):
+    file_list = os.listdir(os.path.join(root,'videos'))
+    j_list = {}
+    for f in file_list:
+        first = f.split('_')
+        user = first[0]
+        question = first[2].split('.')[0]
+        if user in j_list:
+            j_list[user].update({question:f})
+        else:
+            j_list[user] = {question:f}
+    return j_list
+
+def dir_list(root,j_list,folder):
+    j_images = {}
+    for k_subject,v_subject in j_list.items():
+        for k_question,v_question in v_subject.items():
+            single_question = os.path.join(root,folder,k_subject,k_question)
+            all_images = sorted(Path(single_question).iterdir(), key=os.path.getmtime)
+            all_images = [str(x) for x in all_images]
+            if k_subject in j_images:
+                j_images[k_subject].update({k_question:all_images})
+            else:
+                j_images[k_subject] = {k_question:all_images}
+    return j_images
+
+####################################################
 # conversion from original format to mp4
 ####################################################
 
@@ -31,33 +61,6 @@ def video_convertion(root):
         if not path.exists(output_video):
             input_video = os.path.join(base_raw,f)
             ffmpeg_convert(input_video,output_video)
-
-####################################################
-# duration of the video, duration = frames/fps
-####################################################
-
-def video_length(root):
-    base_mp4 = os.path.join(root,'videos','mp4')
-    file_list = os.listdir(base_mp4)
-    j_list = {}
-    for f in file_list:
-        print(f)
-        first = f.split('_')
-        user = first[0]
-        question = first[1].split('.')[0]
-        output_video = os.path.join(base_mp4,f)
-        # get values per video
-        cap = cv2.VideoCapture(output_video)
-        fps = cap.get(cv2.CAP_PROP_FPS)
-        frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-        duration = round(frame_count/fps,2)
-        cap.release()
-        #creaate dict
-        if user in j_list:
-            j_list[user].update({question:duration})
-        else:
-            j_list[user] = {question:duration}
-    return j_list
 
 ####################################################
 # frame extraction
@@ -144,36 +147,6 @@ def facial_detection(j_frames):
                 cv2.imwrite(crop_path, resized)
 
 ####################################################
-# utils: list
-####################################################
-
-def video_list(root):
-    file_list = os.listdir(os.path.join(root,'videos'))
-    j_list = {}
-    for f in file_list:
-        first = f.split('_')
-        user = first[0]
-        question = first[2].split('.')[0]
-        if user in j_list:
-            j_list[user].update({question:f})
-        else:
-            j_list[user] = {question:f}
-    return j_list
-
-def dir_list(root,j_list,folder):
-    j_images = {}
-    for k_subject,v_subject in j_list.items():
-        for k_question,v_question in v_subject.items():
-            single_question = os.path.join(root,folder,k_subject,k_question)
-            all_images = sorted(Path(single_question).iterdir(), key=os.path.getmtime)
-            all_images = [str(x) for x in all_images]
-            if k_subject in j_images:
-                j_images[k_subject].update({k_question:all_images})
-            else:
-                j_images[k_subject] = {k_question:all_images}
-    return j_images
-
-####################################################
 # emotion recognition
 ####################################################
 
@@ -206,6 +179,33 @@ def emotion_recognition(root,j_frames):
                     wr.writerow(mylist)
 
 ####################################################
+# duration of the video, duration = frames/fps
+####################################################
+
+def video_length(root):
+    base_mp4 = os.path.join(root,'videos','mp4')
+    file_list = os.listdir(base_mp4)
+    j_list = {}
+    for f in file_list:
+        print(f)
+        first = f.split('_')
+        user = first[0]
+        question = first[1].split('.')[0]
+        output_video = os.path.join(base_mp4,f)
+        # get values per video
+        cap = cv2.VideoCapture(output_video)
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        duration = round(frame_count/fps,2)
+        cap.release()
+        #creaate dict
+        if user in j_list:
+            j_list[user].update({question:duration})
+        else:
+            j_list[user] = {question:duration}
+    return j_list
+
+####################################################
 # create csv
 ####################################################
 
@@ -228,6 +228,10 @@ def individual_emotion(root,csv_file):
                 ready = True
             if ready == True and len(emotions)>1:
                 print(len(emotions))
+
+####################################################
+# main
+####################################################
 
 if __name__ == "__main__":
     root = '/home/hitch'
