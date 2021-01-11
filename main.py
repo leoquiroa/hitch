@@ -9,18 +9,9 @@ import subprocess
 from moviepy.editor import VideoFileClip
 from os import path
 
-def video_list(root):
-    file_list = os.listdir(os.path.join(root,'videos'))
-    j_list = {}
-    for f in file_list:
-        first = f.split('_')
-        user = first[0]
-        question = first[2].split('.')[0]
-        if user in j_list:
-            j_list[user].update({question:f})
-        else:
-            j_list[user] = {question:f}
-    return j_list
+####################################################
+# conversion from original format to mp4
+####################################################
 
 def ffmpeg_convert(input_video,output_video):
     cmd = ['ffmpeg','-i',input_video,output_video]
@@ -40,6 +31,10 @@ def video_convertion(root):
         if not path.exists(output_video):
             input_video = os.path.join(base_raw,f)
             ffmpeg_convert(input_video,output_video)
+
+####################################################
+# duration of the video, duration = frames/fps
+####################################################
 
 def video_length(root):
     base_mp4 = os.path.join(root,'videos','mp4')
@@ -63,6 +58,10 @@ def video_length(root):
         else:
             j_list[user] = {question:duration}
     return j_list
+
+####################################################
+# frame extraction
+####################################################
 
 def analyze_user(root,j_list):
     #subject cycle
@@ -94,20 +93,11 @@ def get_and_save_frames(single_video,subject,q):
         frame_path = os.path.join(subject,q,str(count)+'.jpg')
         cv2.imwrite(frame_path, image)     # save frame as JPEG file      
         success,image = vidcap.read()
-        count += 1
-        
-def dir_list(root,j_list,folder):
-    j_images = {}
-    for k_subject,v_subject in j_list.items():
-        for k_question,v_question in v_subject.items():
-            single_question = os.path.join(root,folder,k_subject,k_question)
-            all_images = sorted(Path(single_question).iterdir(), key=os.path.getmtime)
-            all_images = [str(x) for x in all_images]
-            if k_subject in j_images:
-                j_images[k_subject].update({k_question:all_images})
-            else:
-                j_images[k_subject] = {k_question:all_images}
-    return j_images
+        count += 1        
+
+####################################################
+# facial detection
+####################################################
 
 def facial_detection(j_frames):
     url = os.path.join(root,'haarcascade_frontalface_default.xml')
@@ -153,6 +143,40 @@ def facial_detection(j_frames):
                 crop_path = os.path.join(question,'crop_'+tail)
                 cv2.imwrite(crop_path, resized)
 
+####################################################
+# utils: list
+####################################################
+
+def video_list(root):
+    file_list = os.listdir(os.path.join(root,'videos'))
+    j_list = {}
+    for f in file_list:
+        first = f.split('_')
+        user = first[0]
+        question = first[2].split('.')[0]
+        if user in j_list:
+            j_list[user].update({question:f})
+        else:
+            j_list[user] = {question:f}
+    return j_list
+
+def dir_list(root,j_list,folder):
+    j_images = {}
+    for k_subject,v_subject in j_list.items():
+        for k_question,v_question in v_subject.items():
+            single_question = os.path.join(root,folder,k_subject,k_question)
+            all_images = sorted(Path(single_question).iterdir(), key=os.path.getmtime)
+            all_images = [str(x) for x in all_images]
+            if k_subject in j_images:
+                j_images[k_subject].update({k_question:all_images})
+            else:
+                j_images[k_subject] = {k_question:all_images}
+    return j_images
+
+####################################################
+# emotion recognition
+####################################################
+
 def emotion_recognition(root,j_frames):
     model = load_model(os.path.join(root,"model_v6_23.hdf5"))
     emotion_dict= {'Angry': 0, 'Sad': 5, 'Neutral': 4, 'Disgust': 1, 'Surprise': 6, 'Fear': 2, 'Happy': 3}
@@ -181,6 +205,10 @@ def emotion_recognition(root,j_frames):
                     wr = csv.writer(f, quoting=csv.QUOTE_ALL)
                     wr.writerow(mylist)
 
+####################################################
+# create csv
+####################################################
+
 def individual_emotion(root,csv_file):
     full_path = os.path.join(root,csv_file)
     with open(full_path, 'r') as read_obj:
@@ -200,7 +228,6 @@ def individual_emotion(root,csv_file):
                 ready = True
             if ready == True and len(emotions)>1:
                 print(len(emotions))
-
 
 if __name__ == "__main__":
     root = '/home/hitch'
