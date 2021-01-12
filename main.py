@@ -8,13 +8,14 @@ from csv import reader
 import subprocess
 from moviepy.editor import VideoFileClip
 from os import path
+import math
 
 ####################################################
 # utils: list
 ####################################################
 
 def video_list(root):
-    file_list = os.listdir(os.path.join(root,'videos'))
+    file_list = os.listdir(os.path.join(root,'videos','raw'))
     j_list = {}
     for f in file_list:
         first = f.split('_')
@@ -210,24 +211,7 @@ def video_length(root):
 ####################################################
 
 def individual_emotion(root,csv_file):
-    full_path = os.path.join(root,csv_file)
-    with open(full_path, 'r') as read_obj:
-        csv_reader = reader(read_obj)
-        user = None
-        question = None
-        emotions = []
-        ready = False
-        for row in csv_reader:
-            if user == row[0] and question == row[1]: 
-                emotions.append(row[3])
-                ready = False
-            else:
-                user = row[0]
-                question = row[1]
-                emotions.append(row[3])
-                ready = True
-            if ready == True and len(emotions)>1:
-                print(len(emotions))
+    pass
 
 ####################################################
 # main
@@ -245,8 +229,25 @@ if __name__ == "__main__":
     #j_faces = dir_list(root,j_videos,'faces')
     #emotion_recognition(root,j_faces)
 
-    #j_videos = video_convertion(root)
-    j_videos = video_length(root)
+    n = 4
+    j_videos = video_list(root)
+    j_duration = video_length(root)
+    j_faces = dir_list(root,j_videos,'faces')
+    for subject,val_subject in j_faces.items():
+        for question,val_question in val_subject.items():
+            url = os.path.join(root,'faces',subject,question,'crop_')
+            z = [x for x in val_question if x.startswith(url)]
+            total_frames = len(z)
+            duration = j_duration[subject][question]
+            fps = total_frames/duration
+            sample = math.floor(fps/n)
+            new_list = []
+            for i in range(0,total_frames,sample):
+                new_list.append(i)
+                print(i)
+            print(new_list)
+            
+
     print(j_videos)
     #individual_emotion(root,'list.csv')
 
