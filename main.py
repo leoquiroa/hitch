@@ -210,59 +210,57 @@ def video_length(root):
 # create csv
 ####################################################
 
-def individual_emotion(root,csv_file):
-    pass
+def get_crop_positive(face_crops,url):
+    only_crops = [x for x in face_crops if x.startswith(url)]
+    crop_tail = [os.path.split(x)[1] for x in only_crops]
+    crop_ext = [x.split('_')[1] for x in crop_tail]
+    return [int(x[:-4]) for x in crop_ext]
+
+def get_crop_negative(val_question,crop_nums):
+    total_frames = len(val_question)
+    original = list(range(total_frames))
+    return list(set(original) - set(crop_nums))
+
+def create_crop_list(url,positive,negative):
+    positive = [[x,url+str(x)+'.jpg'] for x in positive]
+    negative = [[x,'-1'] for x in negative]
+    all = negative + positive
+    all.sort(key = lambda x:x[0])
+    return [x[1] for x in all]
+
+def get_video_specs(duration,val_question,n):
+    fps = math.floor(len(val_question)/duration)
+    sample = math.floor(fps/n)
+    return [fps,sample]
 
 ####################################################
 # main
 ####################################################
-class Control:
-    frame = 0
-    second = 0
-    part = 0
+
 
 if __name__ == "__main__":
     root = '/home/hitch'
-    #j_videos = video_list(root)
-    #analyze_user(root,j_list) #extract frames
-    #j_frames = dir_list(root,j_videos,'frames')
-    #facial_detection(j_frames)
-    
-    # for csv
-    #j_videos = video_list(root)
-    #j_faces = dir_list(root,j_videos,'faces')
-    #emotion_recognition(root,j_faces)
 
     n = 4
     j_videos = video_list(root)
     j_frames = dir_list(root,j_videos,'frames')
     j_duration = video_length(root)
     j_faces = dir_list(root,j_videos,'faces')
+
     for subject,val_subject in j_frames.items():
         for question,val_question in val_subject.items():
             face_crops = j_faces[subject][question]
             url = os.path.join(root,'faces',subject,question,'crop_')
-            only_crops = [x for x in face_crops if x.startswith(url)]
-            crop_tail = [os.path.split(x)[1] for x in only_crops]
-            crop_ext = [x.split('_')[1] for x in crop_tail]
-            crop_nums = [int(x[:-4]) for x in crop_ext]
+            positive = get_crop_positive(face_crops,url)
+            negative = get_crop_negative(val_question,positive)
             
-            total_frames = len(val_question)
-            original = list(range(total_frames))
-            diff = list(set(original) - set(crop_nums))
-
-            crop_nums = [[x,url+str(x)+'.jpg'] for x in crop_nums]
-            diff = [[x,'-1'] for x in diff]
-            new = diff + crop_nums
-            new.sort(key = lambda x:x[0])
-            b = [x[1] for x in new]
+            all_crop = create_crop_list(url,positive,negative)
+            [fps,sample] = get_video_specs(j_duration[subject][question],val_question,n)
             
-            duration = j_duration[subject][question]
-            fps = math.floor(total_frames/duration)
-            sample = math.floor(fps/n)
+            
             sec,part = 0,0
-            
             final = []
+            total_frames = len(val_question)
             for i in range(0,total_frames):
                 i_fps = i%fps
                 if (i_fps%sample) == 0: 
@@ -271,8 +269,8 @@ if __name__ == "__main__":
                     sec += 1
                     part = 1
                 print(i,sec,part)
-                final.append([i,sec,part,b[i]])
-            print(total_frames,duration,fps)
+                final.append([i,sec,part,all_crop[i]])
+            #print(total_frames,duration,fps)
             
             
 
