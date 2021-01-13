@@ -247,22 +247,25 @@ def get_video_specs(j_duration,parameter,n):
     sample = n if n == -1 else math.floor(fps/n)
     return [fps,sample]
 
-def glue(val_question,fps,sample,all_crop):
+def glue(subject,question,val_question,fps,sample,all_crop):
     sec,part = 0,0
-    final = []
     total_frames = len(val_question)
     for i in range(0,total_frames):
         i_fps = i%fps
-        if (i_fps%sample) == 0: 
+        if sample > 0 and (i_fps%sample) == 0: 
             part = n if part >= n else part + 1
         if i_fps == 0: 
             sec += 1
             part = 1
+        # all or partition by secs
         if sample == -1:
-            final.append([i,val_question[i],sec,all_crop[i]])
+            final = [subject,question,i,val_question[i],sec,all_crop[i]]
         else:
-            final.append([i,val_question[i],sec,part,all_crop[i]])
-    return final
+            final = [subject,question,i,val_question[i],sec,part,all_crop[i]]
+        # file
+        with open(root+'/faces2.csv', 'a+', newline='\n') as f:
+            wr = csv.writer(f, quoting=csv.QUOTE_ALL)
+            wr.writerow(final)
 
 ####################################################
 # main
@@ -272,14 +275,15 @@ def glue(val_question,fps,sample,all_crop):
 if __name__ == "__main__":
     root = '/home/hitch'
 
-    n = 4
+    n = 2
     j_videos = video_list(root)
     j_frames = dir_list(root,j_videos,'frames')
     j_duration = video_length(root)
     j_faces = dir_list(root,j_videos,'faces')
     for subject,val_subject in j_frames.items():
         for question,val_question in val_subject.items():
+            print(subject,question)
             parameter = [subject,question,val_question]
             [fps,sample] = get_video_specs(j_duration,parameter,n)
             all_crop = crops(root,parameter,j_faces)
-            final = glue(val_question,fps,sample,all_crop)
+            glue(subject,question,val_question,fps,sample,all_crop)
