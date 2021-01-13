@@ -252,7 +252,7 @@ def write_csv(subject,question,val_question,fps,sample,all_crop):
 # emotion recognition
 ####################################################
 
-def emotion_recognition(root,file_name,n):
+def emotion_recognition(root,file_name):
     #model
     #model = load_model(os.path.join(root,"model_v6_23.hdf5"))
     #emotion_dict= {'Angry': 0, 'Sad': 5, 'Neutral': 4, 'Disgust': 1, 'Surprise': 6, 'Fear': 2, 'Happy': 3}
@@ -264,19 +264,40 @@ def emotion_recognition(root,file_name,n):
         csv_content = [x for x in csv_reader]
     #iterate over the list
     check_part,check_sec = 1,1
+    check_subject,check_question = '',''
     accum = []
     for content in csv_content:
+        # features
         subject = content[0]
         question = content[1]
         sec = content[4]
         part_no = content[5]
         url_crop = content[6]
+        #
+        if check_subject != subject:
+            check_subject = subject
+            check_sec = 1
+            check_part = 1
+            accum = []
+            print(subject)
+        if check_question != question:
+            check_question = question
+            check_sec = 1
+            check_part = 1
+            accum = []
+            print(question)
+        #
         if check_sec == int(sec) and check_part == int(part_no):
             accum.append(url_crop)
         else:
             z = [x for x in accum if x != "-1"]
             crop = z[0] if len(z)>0 else 'no crop'
-            print(subject,question,check_sec,check_part,crop)
+            # file
+            final = [check_subject,check_question,check_sec,check_part,crop]
+            #print(final)
+            with open(root+'/steps_'+file_name, 'a+', newline='\n') as f:
+                wr = csv.writer(f, quoting=csv.QUOTE_ALL)
+                wr.writerow(final)
             check_part += 1 
             accum = []
             accum.append(url_crop)
@@ -317,6 +338,5 @@ def emotion_recognition(root,file_name,n):
 
 if __name__ == "__main__":
     root = '/home/hitch'
-    file_name = 'faces6.csv' 
-    n = 6
-    emotion_recognition(root,file_name,n)
+    file_name = 'faces2.csv' 
+    emotion_recognition(root,file_name)
