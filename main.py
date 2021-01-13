@@ -210,6 +210,19 @@ def video_length(root):
 # create csv
 ####################################################
 
+def list_faces_frame_sec(root,n):
+    j_videos = video_list(root)
+    j_frames = dir_list(root,j_videos,'frames')
+    j_duration = video_length(root)
+    j_faces = dir_list(root,j_videos,'faces')
+    for subject,val_subject in j_frames.items():
+        for question,val_question in val_subject.items():
+            print(subject,question)
+            parameter = [subject,question,val_question]
+            [fps,sample] = get_video_specs(j_duration,parameter,n)
+            all_crop = crops(root,parameter,j_faces)
+            write_csv(subject,question,val_question,fps,sample,all_crop)
+
 def crops(root,parameter,j_faces):
     subject = parameter[0]
     question = parameter[1]
@@ -247,7 +260,7 @@ def get_video_specs(j_duration,parameter,n):
     sample = n if n == -1 else math.floor(fps/n)
     return [fps,sample]
 
-def glue(subject,question,val_question,fps,sample,all_crop):
+def write_csv(subject,question,val_question,fps,sample,all_crop):
     sec,part = 0,0
     total_frames = len(val_question)
     for i in range(0,total_frames):
@@ -263,7 +276,7 @@ def glue(subject,question,val_question,fps,sample,all_crop):
         else:
             final = [subject,question,i,val_question[i],sec,part,all_crop[i]]
         # file
-        with open(root+'/faces2.csv', 'a+', newline='\n') as f:
+        with open(root+'/faces6.csv', 'a+', newline='\n') as f:
             wr = csv.writer(f, quoting=csv.QUOTE_ALL)
             wr.writerow(final)
 
@@ -271,19 +284,7 @@ def glue(subject,question,val_question,fps,sample,all_crop):
 # main
 ####################################################
 
-
 if __name__ == "__main__":
     root = '/home/hitch'
-
-    n = 2
-    j_videos = video_list(root)
-    j_frames = dir_list(root,j_videos,'frames')
-    j_duration = video_length(root)
-    j_faces = dir_list(root,j_videos,'faces')
-    for subject,val_subject in j_frames.items():
-        for question,val_question in val_subject.items():
-            print(subject,question)
-            parameter = [subject,question,val_question]
-            [fps,sample] = get_video_specs(j_duration,parameter,n)
-            all_crop = crops(root,parameter,j_faces)
-            glue(subject,question,val_question,fps,sample,all_crop)
+    n = 6
+    list_faces_frame_sec(root,n)
