@@ -210,6 +210,16 @@ def video_length(root):
 # create csv
 ####################################################
 
+def crops(root,parameter,j_faces):
+    subject = parameter[0]
+    question = parameter[1]
+    val_question = parameter[2]
+    face_crops = j_faces[subject][question]
+    url = os.path.join(root,'faces',subject,question,'crop_')
+    positive = get_crop_positive(face_crops,url)
+    negative = get_crop_negative(val_question,positive)
+    return create_crop_diff(url,positive,negative)
+
 def get_crop_positive(face_crops,url):
     only_crops = [x for x in face_crops if x.startswith(url)]
     crop_tail = [os.path.split(x)[1] for x in only_crops]
@@ -221,17 +231,38 @@ def get_crop_negative(val_question,crop_nums):
     original = list(range(total_frames))
     return list(set(original) - set(crop_nums))
 
-def create_crop_list(url,positive,negative):
+def create_crop_diff(url,positive,negative):
     positive = [[x,url+str(x)+'.jpg'] for x in positive]
     negative = [[x,'-1'] for x in negative]
     all = negative + positive
     all.sort(key = lambda x:x[0])
     return [x[1] for x in all]
 
-def get_video_specs(duration,val_question,n):
+def get_video_specs(j_duration,parameter,n):
+    subject = parameter[0]
+    question = parameter[1]
+    val_question = parameter[2]
+    duration = j_duration[subject][question]
     fps = math.floor(len(val_question)/duration)
-    sample = math.floor(fps/n)
+    sample = n if n == -1 else math.floor(fps/n)
     return [fps,sample]
+
+def glue(val_question,fps,sample,all_crop):
+    sec,part = 0,0
+    final = []
+    total_frames = len(val_question)
+    for i in range(0,total_frames):
+        i_fps = i%fps
+        if (i_fps%sample) == 0: 
+            part = n if part >= n else part + 1
+        if i_fps == 0: 
+            sec += 1
+            part = 1
+        if sample == -1:
+            final.append([i,val_question[i],sec,all_crop[i]])
+        else:
+            final.append([i,val_question[i],sec,part,all_crop[i]])
+    return final
 
 ####################################################
 # main
@@ -246,39 +277,9 @@ if __name__ == "__main__":
     j_frames = dir_list(root,j_videos,'frames')
     j_duration = video_length(root)
     j_faces = dir_list(root,j_videos,'faces')
-
     for subject,val_subject in j_frames.items():
         for question,val_question in val_subject.items():
-            face_crops = j_faces[subject][question]
-            url = os.path.join(root,'faces',subject,question,'crop_')
-            positive = get_crop_positive(face_crops,url)
-            negative = get_crop_negative(val_question,positive)
-            
-            all_crop = create_crop_list(url,positive,negative)
-            [fps,sample] = get_video_specs(j_duration[subject][question],val_question,n)
-            
-            
-            sec,part = 0,0
-            final = []
-            total_frames = len(val_question)
-            for i in range(0,total_frames):
-                i_fps = i%fps
-                if (i_fps%sample) == 0: 
-                    part = n if part >= n else part + 1
-                if i_fps == 0: 
-                    sec += 1
-                    part = 1
-                print(i,sec,part)
-                final.append([i,sec,part,all_crop[i]])
-            #print(total_frames,duration,fps)
-            
-            
-
-    
-    #individual_emotion(root,'list.csv')
-
-
-
-
-
-    
+            parameter = [subject,question,val_question]
+            [fps,sample] = get_video_specs(j_duration,parameter,n)
+            all_crop = crops(root,parameter,j_faces)
+            final = glue(val_question,fps,sample,all_crop)
