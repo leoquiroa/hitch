@@ -148,38 +148,6 @@ def facial_detection(j_frames):
                 cv2.imwrite(crop_path, resized)
 
 ####################################################
-# emotion recognition
-####################################################
-
-def emotion_recognition(root,j_frames):
-    model = load_model(os.path.join(root,"model_v6_23.hdf5"))
-    emotion_dict= {'Angry': 0, 'Sad': 5, 'Neutral': 4, 'Disgust': 1, 'Surprise': 6, 'Fear': 2, 'Happy': 3}
-    label_map = dict((v,k) for k,v in emotion_dict.items()) 
-    for k_subject,v_subject in j_frames.items():
-        if k_subject == 'P1iGNqnOaCUqtnF' : continue
-        for k_question,v_question in v_subject.items():
-            print(k_subject,k_question)
-            for crop_url in v_question:
-                h,tail = os.path.split(crop_url)
-                if tail.startswith("square_"): continue
-                face_image = cv2.imread(crop_url,0)
-                face_image = cv2.resize(face_image, (48,48))
-                # required shape [1,x,y,1]
-                face_image = np.reshape(face_image, [1, face_image.shape[0], face_image.shape[1], 1])
-                mylist = []
-                try:
-                    predicted_class = np.argmax(model.predict(face_image))
-                    predicted_label = label_map[predicted_class]
-                    #print(tail,predicted_label)
-                    mylist = [k_subject,k_question,tail,predicted_label]
-                except KeyError as e:
-                    mylist = [k_subject,k_question,tail,'no label']
-                    #print(tail,'no label')
-                with open(root+'/list.csv', 'a+', newline='\n') as f:
-                    wr = csv.writer(f, quoting=csv.QUOTE_ALL)
-                    wr.writerow(mylist)
-
-####################################################
 # duration of the video, duration = frames/fps
 ####################################################
 
@@ -281,10 +249,74 @@ def write_csv(subject,question,val_question,fps,sample,all_crop):
             wr.writerow(final)
 
 ####################################################
+# emotion recognition
+####################################################
+
+def emotion_recognition(root,file_name,n):
+    #model
+    #model = load_model(os.path.join(root,"model_v6_23.hdf5"))
+    #emotion_dict= {'Angry': 0, 'Sad': 5, 'Neutral': 4, 'Disgust': 1, 'Surprise': 6, 'Fear': 2, 'Happy': 3}
+    #label_map = dict((v,k) for k,v in emotion_dict.items()) 
+    #csv file
+    full_path = os.path.join(root,file_name)
+    with open(full_path, 'r') as read_obj:
+        csv_reader = reader(read_obj)
+        csv_content = [x for x in csv_reader]
+    #iterate over the list
+    check_part,check_sec = 1,1
+    accum = []
+    for content in csv_content:
+        subject = content[0]
+        question = content[1]
+        sec = content[4]
+        part_no = content[5]
+        url_crop = content[6]
+        if check_sec == int(sec) and check_part == int(part_no):
+            accum.append(url_crop)
+        else:
+            z = [x for x in accum if x != "-1"]
+            crop = z[0] if len(z)>0 else 'no crop'
+            print(subject,question,check_sec,check_part,crop)
+            check_part += 1 
+            accum = []
+            accum.append(url_crop)
+            if int(sec) > check_sec : 
+                check_sec += 1
+                check_part = 1
+        
+
+    '''
+    for k_subject,v_subject in j_frames.items():
+        if k_subject == 'P1iGNqnOaCUqtnF' : continue
+        for k_question,v_question in v_subject.items():
+            print(k_subject,k_question)
+            for crop_url in v_question:
+                h,tail = os.path.split(crop_url)
+                if tail.startswith("square_"): continue
+                face_image = cv2.imread(crop_url,0)
+                face_image = cv2.resize(face_image, (48,48))
+                # required shape [1,x,y,1]
+                face_image = np.reshape(face_image, [1, face_image.shape[0], face_image.shape[1], 1])
+                mylist = []
+                try:
+                    predicted_class = np.argmax(model.predict(face_image))
+                    predicted_label = label_map[predicted_class]
+                    #print(tail,predicted_label)
+                    mylist = [k_subject,k_question,tail,predicted_label]
+                except KeyError as e:
+                    mylist = [k_subject,k_question,tail,'no label']
+                    #print(tail,'no label')
+                with open(root+'/list.csv', 'a+', newline='\n') as f:
+                    wr = csv.writer(f, quoting=csv.QUOTE_ALL)
+                    wr.writerow(mylist)
+    '''
+
+####################################################
 # main
 ####################################################
 
 if __name__ == "__main__":
     root = '/home/hitch'
+    file_name = 'faces6.csv' 
     n = 6
-    list_faces_frame_sec(root,n)
+    emotion_recognition(root,file_name,n)
