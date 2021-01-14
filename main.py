@@ -252,11 +252,7 @@ def write_csv(subject,question,val_question,fps,sample,all_crop):
 # emotion recognition
 ####################################################
 
-def emotion_recognition(root,file_name):
-    #model
-    #model = load_model(os.path.join(root,"model_v6_23.hdf5"))
-    #emotion_dict= {'Angry': 0, 'Sad': 5, 'Neutral': 4, 'Disgust': 1, 'Surprise': 6, 'Fear': 2, 'Happy': 3}
-    #label_map = dict((v,k) for k,v in emotion_dict.items()) 
+def facial_crop_per_time(root,file_name):
     #csv file
     full_path = os.path.join(root,file_name)
     with open(full_path, 'r') as read_obj:
@@ -273,23 +269,25 @@ def emotion_recognition(root,file_name):
         sec = content[4]
         part_no = content[5]
         url_crop = content[6]
-        #
+        # control subject
         if check_subject != subject:
             check_subject = subject
             check_sec = 1
             check_part = 1
             accum = []
             print(subject)
+        # control question
         if check_question != question:
             check_question = question
             check_sec = 1
             check_part = 1
             accum = []
             print(question)
-        #
+        # if it is the same second and part
         if check_sec == int(sec) and check_part == int(part_no):
             accum.append(url_crop)
         else:
+            #check accumulate list
             z = [x for x in accum if x != "-1"]
             crop = z[0] if len(z)>0 else 'no crop'
             # file
@@ -298,39 +296,55 @@ def emotion_recognition(root,file_name):
             with open(root+'/steps_'+file_name, 'a+', newline='\n') as f:
                 wr = csv.writer(f, quoting=csv.QUOTE_ALL)
                 wr.writerow(final)
+            # increase part
             check_part += 1 
             accum = []
             accum.append(url_crop)
+            # control seconds
             if int(sec) > check_sec : 
                 check_sec += 1
                 check_part = 1
-        
 
-    '''
-    for k_subject,v_subject in j_frames.items():
-        if k_subject == 'P1iGNqnOaCUqtnF' : continue
-        for k_question,v_question in v_subject.items():
-            print(k_subject,k_question)
-            for crop_url in v_question:
-                h,tail = os.path.split(crop_url)
-                if tail.startswith("square_"): continue
-                face_image = cv2.imread(crop_url,0)
-                face_image = cv2.resize(face_image, (48,48))
-                # required shape [1,x,y,1]
-                face_image = np.reshape(face_image, [1, face_image.shape[0], face_image.shape[1], 1])
-                mylist = []
-                try:
-                    predicted_class = np.argmax(model.predict(face_image))
-                    predicted_label = label_map[predicted_class]
-                    #print(tail,predicted_label)
-                    mylist = [k_subject,k_question,tail,predicted_label]
-                except KeyError as e:
-                    mylist = [k_subject,k_question,tail,'no label']
-                    #print(tail,'no label')
-                with open(root+'/list.csv', 'a+', newline='\n') as f:
-                    wr = csv.writer(f, quoting=csv.QUOTE_ALL)
-                    wr.writerow(mylist)
-    '''
+def emotion_recognition(root,file_name):
+    #model
+    model = load_model(os.path.join(root,"model_v6_23.hdf5"))
+    emotion_dict= {'Angry': 0, 'Sad': 5, 'Neutral': 4, 'Disgust': 1, 'Surprise': 6, 'Fear': 2, 'Happy': 3}
+    label_map = dict((v,k) for k,v in emotion_dict.items()) 
+    #csv file
+    full_path = os.path.join(root,file_name)
+    with open(full_path, 'r') as read_obj:
+        csv_reader = reader(read_obj)
+        csv_content = [x for x in csv_reader]
+    #
+    for content in csv_content:
+        # features
+        subject = content[0]
+        question = content[1]
+        sec = content[2]
+        part_no = content[3]
+        url_crop = content[4]
+
+        if url_crop == "no crop":
+            emotion_text = "no emotion"
+        else:
+            face_image = cv2.imread(url_crop,0)
+            face_image = cv2.resize(face_image, (48,48))
+            face_image = face_image.astype("float")/255.0
+            face_image = np.expand_dims(face_image, axis=0)
+            face_image = np.expand_dims(face_image, axis=-1)
+
+            emotion_prediction = model.predict(face_image)
+            emotion_probability = np.max(emotion_prediction)
+            emotion_label_arg = np.argmax(emotion_prediction)
+            emotion_text = label_map[emotion_label_arg]
+
+        mylist = content[:-1]
+        mylist.append(emotion_text)
+
+        with open(root+'/list4.csv', 'a+', newline='\n') as f:
+            wr = csv.writer(f, quoting=csv.QUOTE_ALL)
+            wr.writerow(mylist)
+
 
 ####################################################
 # main
@@ -338,5 +352,7 @@ def emotion_recognition(root,file_name):
 
 if __name__ == "__main__":
     root = '/home/hitch'
-    file_name = 'faces2.csv' 
+    #file_name = 'faces2.csv' 
+    #facial_crop_per_time(root,file_name)
+    file_name = 'steps_faces4.csv' 
     emotion_recognition(root,file_name)
