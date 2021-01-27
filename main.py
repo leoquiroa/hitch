@@ -341,7 +341,7 @@ def emotion_recognition(root,file_name):
         mylist = content[:-1]
         mylist.append(emotion_text)
 
-        with open(root+'/list4.csv', 'a+', newline='\n') as f:
+        with open(root+'/list6.csv', 'a+', newline='\n') as f:
             wr = csv.writer(f, quoting=csv.QUOTE_ALL)
             wr.writerow(mylist)
 
@@ -354,5 +354,5 @@ if __name__ == "__main__":
     root = '/home/hitch'
     #file_name = 'faces2.csv' 
     #facial_crop_per_time(root,file_name)
-    file_name = 'steps_faces4.csv' 
+    file_name = 'steps_faces6.csv' 
     emotion_recognition(root,file_name)
